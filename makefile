@@ -1,2 +1,2 @@
 all:
-	gcc -o aes aes.c
+	gcc -Wall -o aes aes.c
