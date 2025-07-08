@@ -35,9 +35,10 @@ void bb_print_bytes(char const *message, uint8_t const *bytes, int num) {
 	printf("\n");
 }
 
-void bb_key_expansion(uint8_t const *round_key, uint8_t* new_round_key, int round) {
-	uint8_t tmp[AES_128_BYTES] = {0};
-	uint8_t const *last_word = round_key + 12;
+void bb_key_expansion(uint8_t const *round_key, uint8_t key_bytes, uint8_t* new_round_key, int round)
+{
+	uint8_t tmp[AES_256_KEY_BYTES] = {0};
+	uint8_t const *last_word = round_key + (key_bytes - 4);
 	bb_rot_word(last_word, tmp);
 	bb_sbox_word(tmp, tmp);
 	bb_xor_bytes(round_key, tmp, tmp, 4);
@@ -45,12 +46,21 @@ void bb_key_expansion(uint8_t const *round_key, uint8_t* new_round_key, int roun
 	bb_rcon_word(round, rcon);
 	bb_xor_bytes(tmp, rcon, tmp, 4);
 
-	for (int i = 0; i < 3; i++) {
-		bb_xor_bytes(tmp + (i * 4),
-			  round_key + ((i + 1) * 4),
-			  tmp + ((i + 1) * 4), 4);
+	int nk = key_bytes / 4;
+	for (int i = 1; i < nk; i++) {
+		if (key_bytes == AES_256_KEY_BYTES && i % nk == 4) {
+			bb_sbox_word(tmp + ((i - 1) * 4), tmp + (i * 4));
+			bb_xor_bytes(tmp + (i * 4),
+				     round_key + (i * 4),
+				     tmp + (i * 4), 4);
+			
+		} else {
+			bb_xor_bytes(tmp + ((i - 1) * 4),
+				     round_key + (i * 4),
+				     tmp + (i * 4), 4);
+		}
 	}
-	memcpy(new_round_key, tmp, AES_128_BYTES);
+	memcpy(new_round_key, tmp, key_bytes);
 }
 
 void bb_print_state(uint8_t const *state) {
@@ -63,11 +73,11 @@ void bb_print_state(uint8_t const *state) {
 }
 
 void bb_copy_state(uint8_t const *state1, uint8_t* state2) {
-	memcpy(state2, state1, AES_128_BYTES);
+	memcpy(state2, state1, AES_128_KEY_BYTES);
 }
 
 void bb_sbox_state_ex(uint8_t const *state, uint8_t* state_out, const uint8_t* sbox) {
-	for (int i = 0; i < AES_128_BYTES; i++) {
+	for (int i = 0; i < AES_128_KEY_BYTES; i++) {
 		state_out[i] = sbox[state[i]];
 	}
 }
@@ -81,8 +91,8 @@ void bb_inv_sbox_state(uint8_t const *state, uint8_t* state_out) {
 }
 
 void bb_shift_state_ex(uint8_t const* state, uint8_t* state_out, uint8_t const* shift) {
-	uint8_t tmp_state[AES_128_BYTES] = {0};
-	for (int i = 0; i < AES_128_BYTES; i++) {
+	uint8_t tmp_state[AES_128_KEY_BYTES] = {0};
+	for (int i = 0; i < AES_128_KEY_BYTES; i++) {
 		tmp_state[i] = state[shift[i]];
 	}
 
@@ -100,7 +110,7 @@ void bb_inv_shift_state(uint8_t const *state, uint8_t* state_out) {
 }
 
 void bb_mix_columns_ex(uint8_t const *state, uint8_t* state_out, uint8_t* matrix) {
-	uint8_t tmp_state[AES_128_BYTES] = {0};
+	uint8_t tmp_state[AES_128_KEY_BYTES] = {0};
 	for (int column = 0; column < 4; column++) {
 		for (int row = 0; row < 4; row++) {
 			int out_pos = (column * 4) + row;
@@ -151,31 +161,31 @@ void bb_inv_mix_columns(uint8_t const* state, uint8_t* state_out) {
 }
 
 void bb_add_round_key(uint8_t const* state, uint8_t const* round_key, uint8_t* state_out) {
-	for (int i = 0; i < AES_128_BYTES; i++) {
+	for (int i = 0; i < AES_128_KEY_BYTES; i++) {
 		state_out[i] = state[i] ^ round_key[i];
 	}
 }
 
 void bb_encrypt(uint8_t const* plaintext, uint8_t const* key, uint8_t* ciphertext) {
 	bb_add_round_key(plaintext, key, ciphertext);
-	uint8_t round_key[AES_128_BYTES] = {0};
-	memcpy(round_key, key, AES_128_BYTES);
+	uint8_t round_key[AES_128_KEY_BYTES] = {0};
+	memcpy(round_key, key, AES_128_KEY_BYTES);
 	for (int i = 0; i < AES_128_ROUNDS; i++) {
 		bb_sbox_state(ciphertext, ciphertext);
 		bb_shift_state(ciphertext, ciphertext);
 		if (i + 1 < AES_128_ROUNDS) {
 			bb_mix_columns(ciphertext, ciphertext);
 		}
-		bb_key_expansion(round_key, round_key, i + 1);
+		bb_key_expansion(round_key, sizeof(round_key), round_key, i + 1);
 		bb_add_round_key(ciphertext, round_key, ciphertext);
 	}
 }
 
 void bb_decrypt(uint8_t const* ciphertext, uint8_t const* key, uint8_t* plaintext) {
-	uint8_t keys[AES_128_ROUNDS + 1][AES_128_BYTES] = {{0}};
-	memcpy(keys[0], key, AES_128_BYTES);
+	uint8_t keys[AES_128_ROUNDS + 1][AES_128_KEY_BYTES] = {{0}};
+	memcpy(keys[0], key, AES_128_KEY_BYTES);
 	for (int i = 0; i < AES_128_ROUNDS; i++) {
-		bb_key_expansion(keys[i], keys[i + 1], i + 1);
+		bb_key_expansion(keys[i], sizeof(keys[0]), keys[i + 1], i + 1);
 	}
 
 	bb_add_round_key(ciphertext, keys[AES_128_ROUNDS], plaintext);

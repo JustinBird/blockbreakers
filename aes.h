@@ -2,9 +2,19 @@
 
 #include <stdint.h>
 
-// The number of round in AES-128
-#define AES_128_BYTES 16
+#define AES_BLOCK_SIZE 16
+
 #define AES_128_ROUNDS 10
+#define AES_192_ROUNDS 12
+#define AES_256 ROUNDS 14
+
+#define AES_128_KEY_BYTES 16
+#define AES_192_KEY_BYTES 24
+#define AES_256_KEY_BYTES 32
+
+#define AES_128_KEY_WORDS 4
+#define AES_192_KEY_WORDS 6
+#define AES_256_KEY_WORDS 8
 
 void bb_print_state(uint8_t const *state);
 /**
@@ -87,7 +97,7 @@ void bb_print_bytes(char const *message, uint8_t const *bytes, int num);
 /**
  * Expands the previous 16 byte round key into a new 16 byte round key
  */
-void bb_key_expansion(uint8_t const *round_key, uint8_t* new_round_key, int round);
+void bb_key_expansion(uint8_t const *round_key, uint8_t key_bytes, uint8_t* new_round_key, int round);
 
 static const uint8_t sbox_en[256] = {
 	0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5,
