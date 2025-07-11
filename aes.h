@@ -6,7 +6,7 @@
 
 #define AES_128_ROUNDS 10
 #define AES_192_ROUNDS 12
-#define AES_256 ROUNDS 14
+#define AES_256_ROUNDS 14
 
 #define AES_128_KEY_BYTES 16
 #define AES_192_KEY_BYTES 24
@@ -21,6 +21,10 @@ void bb_print_state(uint8_t const *state);
  * Encrypts the given plaintext with the given key into ciphertext.
  */
 void bb_encrypt(uint8_t const* plaintext, uint8_t const* key, uint8_t* ciphertext);
+
+void bb_encrypt_128(uint8_t const* plaintext, uint8_t const* key, uint8_t* ciphertext);
+
+void bb_encrypt_256(uint8_t const* plaintext, uint8_t const* key, uint8_t* ciphertext);
 
 /**
  * Decrypts the given ciphertext with the given key into plaintext.
