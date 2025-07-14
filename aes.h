@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 
+#define WORD_SIZE 4
 #define AES_BLOCK_SIZE 16
 
 #define AES_128_ROUNDS 10
@@ -15,6 +16,10 @@
 #define AES_128_KEY_WORDS 4
 #define AES_192_KEY_WORDS 6
 #define AES_256_KEY_WORDS 8
+
+#define AES_128_EXPANDED_KEY_SIZE ((AES_128_ROUNDS + 1) * AES_128_KEY_WORDS * WORD_SIZE)
+#define AES_192_EXPANDED_KEY_SIZE ((AES_192_ROUNDS + 1) * AES_192_KEY_WORDS * WORD_SIZE)
+#define AES_256_EXPANDED_KEY_SIZE ((AES_256_ROUNDS + 1) * AES_256_KEY_WORDS * WORD_SIZE)
 
 void bb_print_state(uint8_t const *state);
 /**
