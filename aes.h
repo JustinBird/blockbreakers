@@ -29,6 +29,8 @@ void bb_encrypt(uint8_t const* plaintext, uint8_t const* key, uint8_t* ciphertex
 
 void bb_encrypt_128(uint8_t const* plaintext, uint8_t const* key, uint8_t* ciphertext);
 
+void bb_encrypt_192(uint8_t const* plaintext, uint8_t const* key, uint8_t* ciphertext);
+
 void bb_encrypt_256(uint8_t const* plaintext, uint8_t const* key, uint8_t* ciphertext);
 
 /**

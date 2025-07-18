@@ -203,6 +203,41 @@ void bb_encrypt_128(uint8_t const* plaintext, uint8_t const* key, uint8_t* ciphe
 	bb_encrypt_last_round(ciphertext, round_key);
 }
 
+void bb_encrypt_192(uint8_t const* plaintext, uint8_t const* key, uint8_t* ciphertext)
+{
+	int key_size = AES_192_KEY_BYTES;
+	int key_rounds = AES_192_ROUNDS;
+	bb_add_round_key(plaintext, key, ciphertext);
+	uint8_t round_key[AES_192_KEY_BYTES * 2] = {0};
+	memcpy(round_key, key, key_size);
+	int key_num = 1;
+
+	uint8_t* second_key_start = round_key + AES_192_KEY_BYTES;
+	bb_key_expansion(round_key, AES_192_KEY_BYTES, second_key_start, key_num++);
+	int key_bytes_used = AES_BLOCK_SIZE;
+	int key_bytes_remaining = sizeof(round_key) - key_bytes_used;
+
+	for (int i = 1; i < key_rounds; i++) {
+		if (key_bytes_remaining < AES_BLOCK_SIZE) {
+			bb_key_expansion(second_key_start, AES_192_KEY_BYTES, round_key, key_num++);
+			bb_key_expansion(round_key, AES_192_KEY_BYTES, second_key_start, key_num++);
+			key_bytes_used = 0;
+			key_bytes_remaining = sizeof(round_key);
+		}
+
+		bb_encrypt_round(ciphertext, round_key + key_bytes_used);
+		key_bytes_used += AES_BLOCK_SIZE;
+		key_bytes_remaining -= AES_BLOCK_SIZE;
+	}
+	if (key_bytes_remaining < AES_BLOCK_SIZE) {
+		bb_key_expansion(second_key_start, AES_192_KEY_BYTES, round_key, key_num++);
+		bb_key_expansion(round_key, AES_192_KEY_BYTES, second_key_start, key_num++);
+		key_bytes_used = 0;
+		key_bytes_remaining = sizeof(round_key);
+	}
+	bb_encrypt_last_round(ciphertext, round_key + key_bytes_used);
+}
+
 void bb_encrypt_256(uint8_t const* plaintext, uint8_t const* key, uint8_t* ciphertext)
 {
 	bb_add_round_key(plaintext, key, ciphertext);
