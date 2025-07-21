@@ -257,31 +257,36 @@ void bb_encrypt_256(uint8_t const* plaintext, uint8_t const* key, uint8_t* ciphe
 	bb_encrypt_last_round(ciphertext, round_key);
 }
 
-void bb_encrypt(uint8_t const* plaintext, uint8_t const* key, uint8_t* ciphertext) {
-	bb_add_round_key(plaintext, key, ciphertext);
-	uint8_t round_key[AES_128_KEY_BYTES] = {0};
-	memcpy(round_key, key, AES_128_KEY_BYTES);
-	for (int i = 0; i < AES_128_ROUNDS; i++) {
-		bb_sbox_state(ciphertext, ciphertext);
-		bb_shift_state(ciphertext, ciphertext);
-		if (i + 1 < AES_128_ROUNDS) {
-			bb_mix_columns(ciphertext, ciphertext);
+void bb_decrypt_rounds(uint8_t const* ciphertext, uint8_t* plaintext, uint8_t const* keys, uint32_t rounds)
+{
+	bb_add_round_key(ciphertext, keys, plaintext);
+	keys -= AES_BLOCK_SIZE;
+
+	for (int i = rounds - 1; i >= 0; i--) {
+		bb_inv_shift_state(plaintext, plaintext);
+		bb_inv_sbox_state(plaintext, plaintext);
+
+		bb_add_round_key(plaintext, keys, plaintext);
+		keys -= AES_BLOCK_SIZE;
+		if (i != 0) {
+			bb_inv_mix_columns(plaintext, plaintext);
 		}
-		bb_key_expansion(round_key, sizeof(round_key), round_key, i + 1);
-		bb_add_round_key(ciphertext, round_key, ciphertext);
 	}
 }
 
-void bb_decrypt(uint8_t const* ciphertext, uint8_t const* key, uint8_t* plaintext) {
-	uint8_t keys[AES_128_ROUNDS + 1][AES_128_KEY_BYTES] = {{0}};
-	memcpy(keys[0], key, AES_128_KEY_BYTES);
-	for (int i = 0; i < AES_128_ROUNDS; i++) {
-		bb_key_expansion(keys[i], sizeof(keys[0]), keys[i + 1], i + 1);
+void bb_decrypt_128(uint8_t const* ciphertext, uint8_t const* key, uint8_t* plaintext) {
+	uint8_t keys[AES_128_KEY_BYTES * AES_128_NEEDED_KEYS] = {0};
+	uint32_t key_size = AES_128_KEY_BYTES;
+	memcpy(keys, key, key_size);
+	for (int i = 1; i < AES_128_NEEDED_KEYS; i++) {
+		uint8_t* read_offset = keys + ((i - 1) * key_size);
+		uint8_t* write_offset = keys + (i * key_size);
+		bb_key_expansion(read_offset, key_size, write_offset, i);
 	}
+	uint8_t* key_offset = keys + (AES_128_EXPANDED_KEY_BYTES - AES_BLOCK_SIZE);
+	bb_decrypt_rounds(ciphertext, plaintext, key_offset, AES_128_ROUNDS);
 
-	bb_add_round_key(ciphertext, keys[AES_128_ROUNDS], plaintext);
-
-	for (int i = AES_128_ROUNDS - 1; i >= 0; i--) {
+/*	for (int i = AES_128_ROUNDS - 1; i >= 0; i--) {
 		bb_inv_shift_state(plaintext, plaintext);
 		bb_inv_sbox_state(plaintext, plaintext);
 
@@ -290,7 +295,31 @@ void bb_decrypt(uint8_t const* ciphertext, uint8_t const* key, uint8_t* plaintex
 		if (i != 0) {
 			bb_inv_mix_columns(plaintext, plaintext);
 		}
-	}
+	}*/
 };
 
+void bb_decrypt_192(uint8_t const* ciphertext, uint8_t const* key, uint8_t* plaintext) {
+	uint8_t keys[AES_192_KEY_BYTES * AES_192_NEEDED_KEYS] = {0};
+	uint32_t key_size = AES_192_KEY_BYTES;
+	memcpy(keys, key, key_size);
+	for (uint32_t i = 1; i < AES_192_NEEDED_KEYS; i++) {
+		uint8_t* read_offset = keys + ((i - 1) * key_size);
+		uint8_t* write_offset = keys + (i * key_size);
+		bb_key_expansion(read_offset, key_size, write_offset, i);
+	}
+	uint8_t* key_offset = keys + (AES_192_EXPANDED_KEY_BYTES - AES_BLOCK_SIZE);
+	bb_decrypt_rounds(ciphertext, plaintext, key_offset, AES_192_ROUNDS);
+};
 
+void bb_decrypt_256(uint8_t const* ciphertext, uint8_t const* key, uint8_t* plaintext) {
+	uint8_t keys[AES_256_KEY_BYTES * AES_256_NEEDED_KEYS] = {0};
+	uint32_t key_size = AES_256_KEY_BYTES;
+	memcpy(keys, key, key_size);
+	for (uint32_t i = 1; i < AES_256_NEEDED_KEYS; i++) {
+		uint8_t* read_offset = keys + ((i - 1) * key_size);
+		uint8_t* write_offset = keys + (i * key_size);
+		bb_key_expansion(read_offset, key_size, write_offset, i);
+	}
+	uint8_t* key_offset = keys + (AES_256_EXPANDED_KEY_BYTES - AES_BLOCK_SIZE);
+	bb_decrypt_rounds(ciphertext, plaintext, key_offset, AES_256_ROUNDS);
+};

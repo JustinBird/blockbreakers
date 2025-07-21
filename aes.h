@@ -17,15 +17,15 @@
 #define AES_192_KEY_WORDS 6
 #define AES_256_KEY_WORDS 8
 
-#define AES_128_EXPANDED_KEY_SIZE ((AES_128_ROUNDS + 1) * AES_128_KEY_WORDS * WORD_SIZE)
-#define AES_192_EXPANDED_KEY_SIZE ((AES_192_ROUNDS + 1) * AES_192_KEY_WORDS * WORD_SIZE)
-#define AES_256_EXPANDED_KEY_SIZE ((AES_256_ROUNDS + 1) * AES_256_KEY_WORDS * WORD_SIZE)
+#define AES_128_EXPANDED_KEY_BYTES ((AES_128_ROUNDS + 1) * AES_BLOCK_SIZE)
+#define AES_192_EXPANDED_KEY_BYTES ((AES_192_ROUNDS + 1) * AES_BLOCK_SIZE)
+#define AES_256_EXPANDED_KEY_BYTES ((AES_256_ROUNDS + 1) * AES_BLOCK_SIZE)
+
+#define AES_128_NEEDED_KEYS ((AES_128_EXPANDED_KEY_BYTES + (AES_128_KEY_BYTES - 1)) / AES_128_KEY_BYTES)
+#define AES_192_NEEDED_KEYS ((AES_192_EXPANDED_KEY_BYTES + (AES_192_KEY_BYTES - 1)) / AES_192_KEY_BYTES)
+#define AES_256_NEEDED_KEYS ((AES_256_EXPANDED_KEY_BYTES + (AES_256_KEY_BYTES - 1)) / AES_256_KEY_BYTES)
 
 void bb_print_state(uint8_t const *state);
-/**
- * Encrypts the given plaintext with the given key into ciphertext.
- */
-void bb_encrypt(uint8_t const* plaintext, uint8_t const* key, uint8_t* ciphertext);
 
 void bb_encrypt_128(uint8_t const* plaintext, uint8_t const* key, uint8_t* ciphertext);
 
@@ -36,7 +36,11 @@ void bb_encrypt_256(uint8_t const* plaintext, uint8_t const* key, uint8_t* ciphe
 /**
  * Decrypts the given ciphertext with the given key into plaintext.
  */
-void bb_decrypt(uint8_t const* ciphertext, uint8_t const* key, uint8_t* plaintext);
+void bb_decrypt_128(uint8_t const* ciphertext, uint8_t const* key, uint8_t* plaintext);
+
+void bb_decrypt_192(uint8_t const* ciphertext, uint8_t const* key, uint8_t* plaintext);
+
+void bb_decrypt_256(uint8_t const* ciphertext, uint8_t const* key, uint8_t* plaintext);
 
 /**
  * Add round_key to the state and write it to state_out.
